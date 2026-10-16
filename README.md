@@ -52,7 +52,8 @@ downloaded from the Hub on first use. Paths and subset size are in [`config.yaml
 | `scripts/05g_mix_ablation.py` | greedy WER per region with layer-mix weights reduced |
 | `scripts/05e_plots.py` | figures in `results/` (run last) |
 
-Findings from step 5 are in [`results/summary.md`](results/summary.md).
+Findings from step 5 are in [`results/summary.md`](results/summary.md). The follow-up on spontaneous speech is
+preregistered in [`PREREG.md`](PREREG.md).
 
 Scripts that read downloaded data are run with `python -I`.
 
