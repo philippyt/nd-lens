@@ -5,7 +5,7 @@ out_dir: outputs
 
 nbtale:
   native_only: true
-  subset_hours: 1.0
+  speakers_per_group: 2
   seed: 0
 
 alignment:

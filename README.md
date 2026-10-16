@@ -39,6 +39,6 @@ downloaded from the Hub on first use. Paths and subset size are in [`config.yaml
 |---|---|
 | `scripts/00_check_env.py` | GPU visible to torch; fp32 / bf16 matmul sanity |
 | `scripts/01_layer_weights.py` | learned layer-mix weights from the checkpoint |
-| `scripts/03_nbtale_metadata.py` | speaker, utterance and word tables; speakers per group; words shared across groups |
+| `scripts/03a_nbtale_metadata.py` | speaker, utterance and word tables; speakers per group; words shared across groups |
 
 Scripts that read downloaded data are run with `python -I`.
