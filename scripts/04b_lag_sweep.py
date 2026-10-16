@@ -51,16 +51,16 @@ def main():
     for li, layer in enumerate(meta["sweep_layers"]):
         for si, shift in enumerate(meta["sweep_shifts_frames"]):
             r = similarity(np.asarray(sweep[idx, li, si], dtype=np.float32), sub)
-            rows.append({"layer": layer, "shift_s": shift * meta["frame_seconds"], **r})
+            rows.append({"layer": meta["layers"][layer], "shift_s": shift * meta["frame_seconds"], **r})
     df = pd.DataFrame(rows)
     df["cross_minus_different"] = df["same_word_cross_dialect"] - df["different_word"]
     df["within_minus_cross"] = df["same_word_within_dialect"] - df["same_word_cross_dialect"]
     df.to_csv(act / "lag_sweep.csv", index=False)
     print(df.round(4).to_string(index=False))
     print("\npeak shift of same-word cross-dialect similarity (minus different-word baseline):")
-    for layer, g in df.groupby("layer"):
+    for layer, g in df.groupby("layer", sort=False):
         best = g.loc[g["cross_minus_different"].idxmax()]
-        print(f"  layer {layer:2d}: +{best['shift_s']:.2f} s ({best['cross_minus_different']:.4f} vs {g.iloc[0]['cross_minus_different']:.4f} at 0 s)")
+        print(f"  {layer:8s}:+{best['shift_s']:.2f} s ({best['cross_minus_different']:.4f} vs {g.iloc[0]['cross_minus_different']:.4f} at 0 s)")
 
 if __name__ == "__main__":
     main()

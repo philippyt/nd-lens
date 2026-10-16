@@ -44,6 +44,13 @@ downloaded from the Hub on first use. Paths and subset size are in [`config.yaml
 | `scripts/03c_check_timebase.py` | manual timings vs. audio: sample rates, durations, speech onset |
 | `scripts/04_extract.py` | word-pooled encoder activations for all 13 hidden states and the original layer 12 |
 | `scripts/04b_lag_sweep.py` | same-word similarity as the pooling window is shifted later |
+| `scripts/05a_select_lag.py` | split speakers in half; pick each layer's lag on one half with a word identity probe |
+| `scripts/05b_convergence.py` | within vs across dialect similarity of the same word, permutation test, controls and strata |
+| `scripts/05c_dialect_probe.py` | 12-way dialect group probe on word tokens |
+| `scripts/05d_wer_distance.py` | error rates per group; correlation with representational distance from East |
+| `scripts/05e_plots.py` | figures in `results/` |
+
+Findings from step 5 are in [`results/summary.md`](results/summary.md).
 
 Scripts that read downloaded data are run with `python -I`.
 
@@ -81,11 +88,13 @@ ones (`04b_lag_sweep.py`), so the manual window is also shifted later in 0.04 s 
 | `words.parquet` | one row per word | word, speaker, group, region, sentence set, written standard, manual and CTC times and frame windows; row *i* matches index *i* of the arrays |
 | `manual.npy` | words × 14 × 1024, float32 | mean over the manual window of each hidden state |
 | `ctc_shifted.npy` | words × 14 × 1024, float32 | the same over the shifted CTC window |
-| `lag_sweep.npy` | words × layers × shifts × 1024, float16 | per-frame layer-normed states, averaged over the manual window shifted later |
+| `lag_sweep.npy` | words × 14 × 11 × 1024, float16 | per-frame layer-normed states, averaged over the manual window shifted later by 0-10 frames |
+| `ctc_shifted_ln.npy` | words × 14 × 1024, float16 | per-frame layer-normed states over the shifted CTC window |
 | `meta.json` | | layer names and versions, frame length, CTC lag, sweep layers and shifts |
 
 The 14 layers are the 13 hidden states of the released model (`L0` is the input after subsampling,
 `L1`-`L12` the conformer layers; version `finetuned`) and Google's original layer 12 (`L12_orig`,
 version `original`). Layers 0-11 are identical in both models.
 
-`outputs/align/` holds the greedy transcripts and per-word alignments.
+`outputs/align/` holds the greedy transcripts and per-word alignments. `outputs/step5/` holds the
+speaker split, selected lags and the tables behind the figures.

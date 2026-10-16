@@ -14,9 +14,9 @@ from dialect_probing.align import FRAME_SECONDS, clip_window, frame_window
 from dialect_probing.config import load_config
 from dialect_probing.nbtale import wav_path
 
-SWEEP_LAYERS = [3, 6, 9, 12]
-SWEEP_SHIFTS = list(range(9))
 LAYER_NAMES = [f"L{i}" for i in range(13)] + ["L12_orig"]
+SWEEP_LAYERS = list(range(len(LAYER_NAMES)))
+SWEEP_SHIFTS = list(range(11))
 VERSIONS = ["finetuned"] * 13 + ["original"]
 
 def original_encoder(model):
@@ -52,6 +52,7 @@ def main():
     manual = np.lib.format.open_memmap(out / "manual.npy", "w+", np.float32, (n, len(LAYER_NAMES), d))
     ctc = np.lib.format.open_memmap(out / "ctc_shifted.npy", "w+", np.float32, (n, len(LAYER_NAMES), d))
     sweep = np.lib.format.open_memmap(out / "lag_sweep.npy", "w+", np.float16, (n, len(SWEEP_LAYERS), len(SWEEP_SHIFTS), d))
+    ctc_ln = np.lib.format.open_memmap(out / "ctc_shifted_ln.npy", "w+", np.float16, (n, len(LAYER_NAMES), d))
 
     device = torch.device("cuda")
     model, _ = load_checkpoint(cfg["checkpoint"], device)
@@ -64,17 +65,18 @@ def main():
         max_diff = max(max_diff, (ft[:12] - orig[:12]).abs().max().item())
         peak = max(peak, ft.abs().max().item(), orig[12].abs().max().item())
         states = torch.cat([ft, orig[12:13]])
-        normed = F.layer_norm(ft[SWEEP_LAYERS], (d,))
+        normed = F.layer_norm(states, (d,))
         t = states.shape[1]
         for i, r in w.iterrows():
             m0, m1 = frame_window(r["ref_start"], r["ref_end"], t)
             c0, c1 = clip_window(int(r["ctc_start_frame"]) - lag, int(r["ctc_end_frame"]) - lag, t)
             manual[i] = states[:, m0:m1].mean(1).cpu().numpy()
             ctc[i] = states[:, c0:c1].mean(1).cpu().numpy()
+            ctc_ln[i] = normed[:, c0:c1].mean(1).half().cpu().numpy()
             sweep[i] = torch.stack([normed[:, slice(*clip_window(m0 + s, m1 + s, t))].mean(1) for s in SWEEP_SHIFTS], 1).half().cpu().numpy()
             windows.append({"manual_j0": m0, "manual_j1": m1, "ctc_j0": c0, "ctc_j1": c1})
     took = time.time() - t0
-    for a in (manual, ctc, sweep):
+    for a in (manual, ctc, sweep, ctc_ln):
         a.flush()
 
     meta = words.join(pd.DataFrame(windows))
