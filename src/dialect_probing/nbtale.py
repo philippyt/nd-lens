@@ -68,5 +68,5 @@ def read_annotations(raw: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
                 })
     return pd.DataFrame(utts), pd.DataFrame(words)
 
-def wav_path(raw: Path, utt_id: str, mic: str = "sennheiser") -> Path:
-    return Path(raw) / "Speech" / mic / f"{utt_id}.wav"
+def wav_path(raw: Path, utt_id: str) -> Path:
+    return Path(raw) / f"{utt_id}.wav"
