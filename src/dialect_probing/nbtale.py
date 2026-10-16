@@ -48,7 +48,10 @@ def read_annotations(raw: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
         root = ET.parse(annotation_dir(raw) / f"part_{part}.xml").getroot()
         for ann in root.iter("annotation"):
             uid = ann.get("id")
+            marks = {w.get("text"): w.findall("seg") for w in ann.iter("word") if w.get("text") in ("<start>", "<end>")}
             utts.append({
+                "speech_start": float(marks["<start>"][-1].get("end")) if marks.get("<start>") else float("nan"),
+                "speech_end": float(marks["<end>"][0].get("start")) if marks.get("<end>") else float("nan"),
                 "utt_id": uid,
                 "speaker": ann.get("speaker"),
                 "group": uid.split("/")[1].replace("group_", "g"),

@@ -44,6 +44,17 @@ def word_spans(path: np.ndarray, token_word: np.ndarray, n_words: int) -> list[t
         spans[w] = (t, t + 1) if spans[w] is None else (spans[w][0], t + 1)
     return spans
 
+def frame_window(start: float, end: float, n_frames: int) -> tuple[int, int]:
+    j0, j1 = int(np.ceil(start / FRAME_SECONDS - 1e-9)), int(np.ceil(end / FRAME_SECONDS - 1e-9))
+    if j1 <= j0:
+        j0 = int(round((start + end) / 2 / FRAME_SECONDS))
+        j1 = j0 + 1
+    return clip_window(j0, j1, n_frames)
+
+def clip_window(j0: int, j1: int, n_frames: int) -> tuple[int, int]:
+    j0 = min(max(j0, 0), n_frames - 1)
+    return j0, min(max(j1, j0 + 1), n_frames)
+
 @torch.no_grad()
 def log_probs(model, audio: np.ndarray, device) -> np.ndarray:
     wav = torch.from_numpy(audio)[None].to(device)

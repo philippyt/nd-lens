@@ -39,6 +39,53 @@ downloaded from the Hub on first use. Paths and subset size are in [`config.yaml
 |---|---|
 | `scripts/00_check_env.py` | GPU visible to torch; fp32 / bf16 matmul sanity |
 | `scripts/01_layer_weights.py` | learned layer-mix weights from the checkpoint |
-| `scripts/03a_nbtale_metadata.py` | speaker, utterance and word tables; speakers per group; words shared across groups |
+| `scripts/03a_nbtale_metadata.py` | speaker, utterance and word tables; speakers per group; words shared across groups; written standard per sentence |
+| `scripts/03b_ctc_align.py` | greedy transcripts and CTC forced alignment with the model's own head; compared with the manual word boundaries |
+| `scripts/03c_check_timebase.py` | manual timings vs. audio: sample rates, durations, speech onset |
+| `scripts/04_extract.py` | word-pooled encoder activations for all 13 hidden states and the original layer 12 |
+| `scripts/04b_lag_sweep.py` | same-word similarity as the pooling window is shifted later |
 
 Scripts that read downloaded data are run with `python -I`.
+
+## Data
+
+NB Tale is downloaded from Språkbanken (`https://www.nb.no/sbfil/talegjenkjenning/lingit/`):
+`Annotation.zip`, `Documentation.zip` and the headset recordings `sennheiser_1.tar.gz` (module 1)
+and `sennheiser_2.tar.gz` (module 2), unpacked under `data/nbtale/raw`. Only native speakers are
+used: groups 1-12 (one dialect region each) and group 24 (mixed regions, left out of dialect
+comparisons). Utterances whose prompt contains digits are skipped, as in norsk-asr's training.
+
+Each sentence is tagged Bokmål, Nynorsk or unclear by counting words that exist in only one of the
+two Norsk ordbank full-form lists (`https://www.nb.no/sbfil/leksikalske_databaser/ordbank/`,
+`20220201_norsk_ordbank_nob_2005.tar.gz` and `20220201_norsk_ordbank_nno_2012.tar.gz`, unpacked
+under `data/ordbank`). norsk-asr writes Bokmål only, so error rates are reported per written standard.
+
+## Word windows
+
+The encoder runs at 25 frames/s; frame *j* is centred at 0.04·*j* s. Two kinds of word windows are
+used:
+
+- **manual**: NB Tale's hand-segmented word boundaries (frames whose centre falls inside the word);
+- **CTC**: the model's own forced alignment, shifted back by the median lag against the manual
+  boundaries (4 frames).
+
+Raw CTC spans start about 0.22 s after the word, and deeper layers carry a word later than shallow
+ones (`04b_lag_sweep.py`), so the manual window is also shifted later in 0.04 s steps.
+
+## Outputs
+
+`outputs/activations/`:
+
+| File | Shape | What |
+|---|---|---|
+| `words.parquet` | one row per word | word, speaker, group, region, sentence set, written standard, manual and CTC times and frame windows; row *i* matches index *i* of the arrays |
+| `manual.npy` | words × 14 × 1024, float32 | mean over the manual window of each hidden state |
+| `ctc_shifted.npy` | words × 14 × 1024, float32 | the same over the shifted CTC window |
+| `lag_sweep.npy` | words × layers × shifts × 1024, float16 | per-frame layer-normed states, averaged over the manual window shifted later |
+| `meta.json` | | layer names and versions, frame length, CTC lag, sweep layers and shifts |
+
+The 14 layers are the 13 hidden states of the released model (`L0` is the input after subsampling,
+`L1`-`L12` the conformer layers; version `finetuned`) and Google's original layer 12 (`L12_orig`,
+version `original`). Layers 0-11 are identical in both models.
+
+`outputs/align/` holds the greedy transcripts and per-word alignments.

@@ -14,8 +14,9 @@ from dialect_probing.config import load_config
 from dialect_probing.nbtale import wav_path
 
 def pick_speakers(spk: pd.DataFrame, cfg: dict) -> pd.DataFrame:
-    spk = spk[~spk["group"].isin(cfg["analysis"]["exclude_groups"])]
     n = cfg["nbtale"]["speakers_per_group"]
+    if n is None:
+        return spk
     return spk.groupby("group", group_keys=False).apply(lambda g: g.sample(min(n, len(g)), random_state=cfg["nbtale"]["seed"]))
 
 def main():
@@ -80,12 +81,15 @@ def main():
     per_group = ww.groupby("group").agg(words=("word", "size"), start_diff=("start_diff", "median"),
                                         abs_start_diff=("start_diff", lambda s: s.abs().median()),
                                         ref_covered=("ref_covered", "mean"), ctc_frames=("ctc_frames", "median"))
-    uw = uw.merge(utts[["utt_id", "group"]], on="utt_id")
-    per_group["wer"] = uw.groupby("group").apply(lambda g: jiwer.wer(list(g["ref"]), list(g["hyp"])))
-    per_group["cer"] = uw.groupby("group").apply(lambda g: jiwer.cer(list(g["ref"]), list(g["hyp"])))
+    uw = uw.merge(utts[["utt_id", "group", "written_standard"]], on="utt_id")
+    bm = uw[uw["written_standard"] == "bokmål"]
+    per_group["wer_bokmal"] = bm.groupby("group").apply(lambda g: jiwer.wer(list(g["ref"]), list(g["hyp"])))
+    per_group["cer_bokmal"] = bm.groupby("group").apply(lambda g: jiwer.cer(list(g["ref"]), list(g["hyp"])))
     print("\nper dialect group:")
     print(per_group.round(3).to_string())
-    print(f"\noverall greedy WER {jiwer.wer(list(uw['ref']), list(uw['hyp'])):.3f}, CER {jiwer.cer(list(uw['ref']), list(uw['hyp'])):.3f}")
+    print("\ngreedy WER / CER by written standard:")
+    for label, g in uw.groupby("written_standard"):
+        print(f"  {label:8s} {len(g):5d} utts  WER {jiwer.wer(list(g['ref']), list(g['hyp'])):.3f}  CER {jiwer.cer(list(g['ref']), list(g['hyp'])):.3f}")
 
 if __name__ == "__main__":
     main()

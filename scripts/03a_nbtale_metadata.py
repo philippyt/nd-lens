@@ -3,6 +3,7 @@ from norsk_asr.text import normalize
 
 from dialect_probing.config import load_config
 from dialect_probing.nbtale import read_annotations, read_speakers
+from dialect_probing.written_standard import classify, load_lexicons
 
 def main():
     cfg = load_config()
@@ -17,6 +18,13 @@ def main():
     words = words.merge(utts[["utt_id", "speaker", "group", "macro_region", "sentence_set"]], on="utt_id")
     words["word"] = words["word_orig"].map(normalize)
     words = words[words["word"].str.len() > 0]
+
+    nob_only, nno_only = load_lexicons(cfg["data_dir"] / "ordbank")
+    tags = words.groupby("utt_id")["word"].apply(lambda w: classify(" ".join(w).split(), nob_only, nno_only))
+    utts["written_standard"] = utts["utt_id"].map(tags.str[0]).fillna("uklar")
+    utts["bokmal_only_words"] = utts["utt_id"].map(tags.str[1]).fillna(0).astype(int)
+    utts["nynorsk_only_words"] = utts["utt_id"].map(tags.str[2]).fillna(0).astype(int)
+    words = words.merge(utts[["utt_id", "written_standard"]], on="utt_id")
 
     spk.to_parquet(out / "speakers.parquet")
     utts.to_parquet(out / "utterances.parquet")
@@ -46,8 +54,17 @@ def main():
     print("\ntop 40 words by groups, then speakers:")
     print(per_word.head(40).to_string())
     print("\nset A sentences (read by every speaker):")
-    for t in utts[utts["sentence_set"] == "a"].drop_duplicates("sentence_id").sort_values("sentence_id")["text"]:
-        print("  ", t)
+    for _, r in utts[utts["sentence_set"] == "a"].drop_duplicates("sentence_id").sort_values("sentence_id").iterrows():
+        print(f"   [{r['written_standard']}] {r['text']}")
+
+    sent = utts.drop_duplicates("sentence_id")
+    print("\nwritten standard, distinct sentences:", sent["written_standard"].value_counts().to_dict())
+    print("written standard, utterances:", utts["written_standard"].value_counts().to_dict())
+    print(pd.crosstab(utts["group"], utts["written_standard"]).to_string())
+    for label in ("bokmål", "nynorsk", "uklar"):
+        print(f"\nsample {label}:")
+        for _, r in sent[sent["written_standard"] == label].sample(6, random_state=0).iterrows():
+            print(f"   ({r['bokmal_only_words']}/{r['nynorsk_only_words']}) {r['text']}")
 
 if __name__ == "__main__":
     main()

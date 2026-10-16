@@ -5,7 +5,7 @@ out_dir: outputs
 
 nbtale:
   native_only: true
-  speakers_per_group: 2
+  speakers_per_group: null
   seed: 0
 
 alignment:
