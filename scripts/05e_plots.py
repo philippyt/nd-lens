@@ -142,6 +142,36 @@ def main():
     ax.set_ylabel("WER, Bokmål prompts (%)")
     ax.set_title("WER and distance from East")
     save(fig, "wer_distance_scatter")
+    we = pd.read_csv(s5 / "word_errors.csv")
+    fig, ax = plt.subplots(figsize=(6.4, 3.6))
+    for (col, label), color in zip([("d_east", "Distance from East"), ("d_all", "Distance from all regions")], SERIES):
+        d = we.sort_values("layer_idx")
+        fine, orig = d[d["layer_idx"] < ORIG], d[d["layer_idx"] == ORIG]
+        ax.fill_between(fine["layer_idx"], fine[f"b_{col}"] - 1.96 * fine[f"se_{col}"],
+                        fine[f"b_{col}"] + 1.96 * fine[f"se_{col}"], color=color, alpha=0.15, linewidth=0)
+        series(ax, d, f"b_{col}", label, color)
+        ax.errorbar([ORIG + 0.4], orig[f"b_{col}"], yerr=1.96 * orig[f"se_{col}"], color=color, linewidth=1.5, capsize=0)
+    ax.axhline(0, color=MUTED, linewidth=1)
+    layer_axis(ax)
+    ax.set_ylabel("Log odds per SD")
+    ax.set_title("Token errors and distance")
+    ax.legend()
+    save(fig, "word_errors")
+
+    ab = pd.read_csv(s5 / "mix_ablation.csv").query("written_standard == 'bokmål'")
+    base = ab[ab["condition"] == "baseline"].set_index("group")["wer"]
+    groups = [g for g in base.index if g != "all"] + ["all"]
+    fig, ax = plt.subplots(figsize=(7.2, 3.6))
+    for k, (cond, color) in enumerate(zip(["L7-9 halved", "L7-9 removed", "L0-2 removed"], SERIES)):
+        d = (ab[ab["condition"] == cond].set_index("group")["wer"] - base)[groups] * 100
+        ax.scatter([i + (k - 1) * 0.22 for i in range(len(groups))], d, s=40, color=color, edgecolor=SURFACE,
+                   linewidth=1.5, zorder=3, label=cond)
+    ax.axhline(0, color=MUTED, linewidth=1)
+    ax.set_xticks(range(len(groups)), groups)
+    ax.set_ylabel("WER change (points)")
+    ax.set_title("Mix weight ablation")
+    ax.legend(fontsize=8)
+    save(fig, "mix_ablation")
     print("wrote", sorted(p.name for p in (ROOT / "results").glob("*.png")))
 
 if __name__ == "__main__":

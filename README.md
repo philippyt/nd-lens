@@ -48,7 +48,9 @@ downloaded from the Hub on first use. Paths and subset size are in [`config.yaml
 | `scripts/05b_convergence.py` | within vs across dialect similarity of the same word, permutation test, controls and strata |
 | `scripts/05c_dialect_probe.py` | 12-way dialect group probe on word tokens |
 | `scripts/05d_wer_distance.py` | error rates per group; correlation with representational distance from East |
-| `scripts/05e_plots.py` | figures in `results/` |
+| `scripts/05f_word_errors.py` | per-token distance from the Eastern and overall word centroids vs recognition errors; layer-mix weights vs dialect signal |
+| `scripts/05g_mix_ablation.py` | greedy WER per region with layer-mix weights reduced |
+| `scripts/05e_plots.py` | figures in `results/` (run last) |
 
 Findings from step 5 are in [`results/summary.md`](results/summary.md).
 
