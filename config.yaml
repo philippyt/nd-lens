@@ -1,0 +1,17 @@
+norsk_asr_dir: ../norsk-asr
+checkpoint: ../norsk-asr/runs/full_top1
+data_dir: data
+out_dir: outputs
+
+nbtale:
+  native_only: true
+  subset_hours: 1.0
+  seed: 0
+
+alignment:
+  min_word_frames: 2
+
+analysis:
+  min_dialect_groups_per_word: 3
+  east_groups: [g11, g12]
+  exclude_groups: [g24]

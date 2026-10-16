@@ -1,0 +1,30 @@
+[project]
+name = "norsk-dialect-probing"
+version = "0.1.0"
+description = "Do Norwegian dialects converge inside the norsk-asr (EmbeddingGemma 2) audio encoder?"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "norsk-asr",
+    "torch>=2.5",
+    "numpy>=2.1",
+    "pandas>=2.2",
+    "pyarrow>=17",
+    "pyyaml>=6",
+    "scikit-learn>=1.5",
+    "scipy>=1.13",
+    "matplotlib>=3.9",
+]
+
+[build-system]
+requires = ["uv_build>=0.8,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "dialect_probing"
+
+[tool.uv]
+override-dependencies = ["numpy>=2.1"]
+
+[tool.uv.sources]
+norsk-asr = { path = "../norsk-asr", editable = true }
