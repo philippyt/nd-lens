@@ -165,3 +165,23 @@ The West-East gap on NB Tale module 3 (norsk-asr greedy, +8.6 WER points) was te
 
 So the read-speech story ("the encoder hears dialects nearly alike, the problem is downstream") is not confirmed for
 spontaneous speech either: the errors are not dialect spellings.
+
+
+## The module 3 gap is robust to recording conditions, speakers and speech rate
+
+The West-East WER gap on spontaneous speech (norsk-asr greedy, +8.6 points [+5.0, +12.2]) holds in every split tried.
+
+| Check | West - East (points) |
+|---|---|
+| NTNU recordings only (77 West vs 40 East speakers) | +8.2 [+4.6, +11.8] |
+| Shure room microphone instead of the Sennheiser headset (same sessions) | +8.4 [+4.9, +11.9] |
+| Female / male | +6.0 [+1.1, +10.6] / +11.5 [+6.0, +17.0] |
+| Age 16-39 / 40+ | +7.8 / +8.9 |
+| Speech rate added to a mixed model with speaker random effect | West coefficient unchanged (0.370 → 0.369) |
+
+**The gap is robust to recording site, microphone, gender, age and speech rate.**
+- Articulation rate is the same in West and East (4.81 vs 4.80 syllables per second), as is pause share (31%). Faster speech does raise errors, but it explains none of the gap.
+- In the encoder (CTC-aligned word windows, same pipeline for read and spontaneous speech), spontaneous speech converges a little less at the top layers. But Western words are not pushed further from Eastern ones than in read speech (extra distance at L8: +0.040 spontaneous vs +0.051 read).
+
+Scripts: `11a_confounds_rate.py`, `11b_microphone.py`, `11c_encoder_spont.py`. Tables: `results/m3_speakers_rate.csv`,
+`results/m3_microphone.csv`, `results/encoder_read_vs_spont.csv`.
