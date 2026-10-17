@@ -5,51 +5,15 @@ import time
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn.functional as F
 from norsk_asr.train import load_checkpoint
 from norsk_asr.transcribe import load_audio
 
-from dialect_probing.align import clip_window, ctc_viterbi, log_probs, word_spans
+from dialect_probing.align import ctc_viterbi, log_probs, word_spans
 from dialect_probing.config import load_config
 from dialect_probing.nbtale import wav_path
-from dialect_probing.step5 import PairStats, summarize
+from dialect_probing.spont_encoder import LAYERS, convergence, pool, states
 
-LAYERS = [f"L{i}" for i in range(13)]
 SR = 16000
-WEST = ["g06", "g07", "g08", "g09"]
-
-@torch.no_grad()
-def states(model, audio: np.ndarray, device):
-    wav = torch.from_numpy(audio)[None].to(device)
-    lens = torch.tensor([len(audio)], device=device)
-    feats, fmask = model.features(wav, lens)
-    with torch.autocast(device.type, dtype=torch.bfloat16):
-        out = model.encoder(feats, torch.ones_like(fmask), output_hidden_states=True, return_dict=True)
-    hs = torch.stack(out.hidden_states)[:, 0].float()
-    hs = hs[:, :int(model.output_mask(fmask.sum(1), hs.shape[1]).sum())]
-    return F.layer_norm(hs, hs.shape[-1:])
-
-def pool(normed: torch.Tensor, c0: int, c1: int, lag: int, lags: list[int]) -> np.ndarray:
-    t = normed.shape[1]
-    return torch.stack([normed[l, slice(*clip_window(c0 - lag + s, c1 - lag + s, t))].mean(0) for l, s in enumerate(lags)]).half().cpu().numpy()
-
-def convergence(x: np.ndarray, meta: pd.DataFrame, min_groups: int, perms: int, east: list[str], types=None) -> list[dict]:
-    rng = np.random.default_rng(0)
-    if types is not None:
-        keep = meta["word"].isin(types).to_numpy()
-        x, meta = x[keep], meta[keep].reset_index(drop=True)
-    res = []
-    for l, name in enumerate(LAYERS):
-        st = PairStats(x[:, l].astype(np.float32), meta, min_groups)
-        s = summarize(st.per_word(meta=meta))
-        groups = meta.drop_duplicates("speaker").set_index("speaker")["group"].reindex(st.speakers).to_numpy()
-        null = np.array([summarize(st.per_word(speaker_groups=rng.permutation(groups)))["gap"] for _ in range(perms)])
-        ref = st.to_reference(meta, east)
-        d = 1 - ref.groupby("group")["sim"].mean()
-        res.append({"layer": name, "layer_idx": l, **s, "p_perm": (1 + (null >= s["gap"]).sum()) / (1 + perms),
-                    "dist_east_west": d[d.index.isin(WEST)].mean(), "dist_east_east": d[d.index.isin(east)].mean(),
-                    "dist_east_others": d[~d.index.isin(east)].mean()})
-    return res
 
 def main():
     cfg = load_config()
@@ -72,10 +36,18 @@ def main():
         w = w[(w["speaker"].map(half) == "analysis") & ~w["group"].isin(excl)].sort_values(["utt_id", "word_idx"])
         vecs, meta, t0 = [], [], time.time()
         for uid, g in w.groupby("utt_id", sort=False):
-            normed = states(model, load_audio(str(wav_path(cfg["data_dir"] / "nbtale" / "raw", uid))), device)
-            for r in g.itertuples():
-                vecs.append(pool(normed, int(r.ctc_start_frame), int(r.ctc_end_frame), lag, lags))
-                meta.append({"word": r.word, "speaker": r.speaker, "group": r.group, "sentence_id": uid.rsplit("-", 1)[1]})
+            audio = load_audio(str(wav_path(cfg["data_dir"] / "nbtale" / "raw", uid)))
+            normed, lp = states(model, audio, device), log_probs(model, audio, device)
+            targets = [t for x in g["word"] for t in units.encode(x)]
+            res = ctc_viterbi(lp, targets)
+            labels = np.array([0 if s % 2 == 0 else targets[s // 2] for s in res[0]]) if res else None
+            for pos, r in enumerate(g.itertuples()):
+                c0, c1 = int(r.ctc_start_frame), int(r.ctc_end_frame)
+                vecs.append(pool(normed, c0, c1, lag, lags))
+                score = float(lp[np.arange(c0, c1), labels[c0:c1]].mean()) if labels is not None and c1 > c0 else np.nan
+                meta.append({"word": r.word, "speaker": r.speaker, "group": r.group, "sentence_id": uid.rsplit("-", 1)[1],
+                             "unit": uid, "pos": pos, "c0": c0 - lag, "c1": c1 - lag, "align_score": score,
+                             "ref_start": r.ref_start, "ref_end": r.ref_end})
         np.savez(path_r, x=np.stack(vecs), meta=pd.DataFrame(meta).to_json())
         print(f"read: {len(vecs)} words in {time.time() - t0:.0f} s", flush=True)
     if not path_s.exists():
@@ -92,16 +64,21 @@ def main():
             if any(len(i) == 0 for i in ids):
                 failed += 1
                 continue
+            targets = [t for x in ids for t in x]
             token_word = np.concatenate([[i] * len(x) for i, x in enumerate(ids)]).astype(int)
-            res = ctc_viterbi(lp, [t for x in ids for t in x])
+            res = ctc_viterbi(lp, targets)
             if res is None:
                 failed += 1
                 continue
-            for wi, span in enumerate(word_spans(res[0], token_word, len(words))):
+            path = res[0]
+            labels = np.array([0 if s % 2 == 0 else targets[s // 2] for s in path])
+            for wi, span in enumerate(word_spans(path, token_word, len(words))):
                 if span is None:
                     continue
                 vecs.append(pool(normed, span[0], span[1], lag, lags))
-                meta.append({"word": words[wi], "speaker": r.speaker, "group": r.group, "sentence_id": r.seg_id})
+                score = float(lp[np.arange(span[0], span[1]), labels[span[0]:span[1]]].mean())
+                meta.append({"word": words[wi], "speaker": r.speaker, "group": r.group, "sentence_id": r.seg_id,
+                             "unit": r.seg_id, "pos": wi, "c0": span[0], "c1": span[1], "align_score": score})
         np.savez(path_s, x=np.stack(vecs), meta=pd.DataFrame(meta).to_json())
         print(f"spontaneous: {len(vecs)} words in {time.time() - t0:.0f} s; segments not aligned {failed}", flush=True)
     for name, p in (("read", path_r), ("spontaneous", path_s)):

@@ -155,7 +155,11 @@ The West-East gap on NB Tale module 3 (norsk-asr greedy, +8.6 WER points) was te
 | Function word | 37% [20, 49] |
 | Insertions | 7% |
 
-**Writing dialect speech as Bokmål explains about 1% of the gap.** Even the upper bound, which counts every lost dialect-variable word, is about 11%. The rest is general misrecognition, more frequent for Western speakers. `10a_error_taxonomy.py`, `results/taxonomy_gap.csv`.
+**Corrected:** the earlier "writing dialect as Bokmål explains ~1%" was too narrow. Only one statement holds: the model almost never *outputs* a dialect form (1%). The word-level ranking below shows two dialect-related mechanisms that this taxonomy missed:
+- **Short dialect forms of common words are dropped.** Examples: e/eg/æ for "jeg", e for "er", de for "det", no for "nå". Including the words the hand list missed, these carry about 28% of the gap (a rough bound from word lists).
+- **The references keep non-standard spellings and the model writes standard Bokmål.** Examples: sjøl, heilt, òg, ifra. A sample list of these carries about 10% of the gap.
+
+Even so, accepting spelling variants or dropping function words leaves the gap nearly unchanged (see "Final numbers"). `10a_error_taxonomy.py`, `results/taxonomy_gap.csv`.
 
 **2. "Speakers the model trained on get lower WER."** Not supported, tested on NPSC.
 - **Exposure measured:** norsk-asr's 1,337 h of Stortinget training segments were attributed to speakers through clock times in the official referat. 99.4% got a speaker, and a text check confirmed 97.5% of those. NPSC train speakers were added.
@@ -163,8 +167,7 @@ The West-East gap on NB Tale module 3 (norsk-asr greedy, +8.6 WER points) was te
 - **Exposure doesn't predict WER:** Spearman −0.01 (101 speakers with ≥ 20 sentences). The slope on log training hours is −0.001 [−0.017, +0.016], with dialect area in the model.
 - `10b_train_index.py`, `10c_speaker_exposure.py`, `results/speaker_exposure.csv`.
 
-So the read-speech story ("the encoder hears dialects nearly alike, the problem is downstream") is not confirmed for
-spontaneous speech either: the errors are not dialect spellings.
+So neither dialect spellings in the output nor familiarity with the speaker explains the spontaneous-speech gap.
 
 
 ## The module 3 gap is robust to recording conditions, speakers and speech rate
@@ -181,7 +184,38 @@ The West-East WER gap on spontaneous speech (norsk-asr greedy, +8.6 points [+5.0
 
 **The gap is robust to recording site, microphone, gender, age and speech rate.**
 - Articulation rate is the same in West and East (4.81 vs 4.80 syllables per second), as is pause share (31%). Faster speech does raise errors, but it explains none of the gap.
-- In the encoder (CTC-aligned word windows, same pipeline for read and spontaneous speech), spontaneous speech converges a little less at the top layers. But Western words are not pushed further from Eastern ones than in read speech (extra distance at L8: +0.040 spontaneous vs +0.051 read).
+- ~~In the encoder, spontaneous speech converges a little less at the top layers.~~ **Withdrawn.** That result included misrecognised words, whose forced CTC windows are unreliable on spontaneous speech (mean alignment log-prob −1.46 vs −0.17 for correct words).
+  - Split by recognition outcome, correctly recognised spontaneous words converge like read speech: L8 ratio 0.952 vs 0.942, fully converged at L12 (1.005). Western words are not pushed further from Eastern ones (L8: +0.042 spontaneous vs +0.052 read).
+  - The extra dialect clustering comes only from the misrecognised words, it is not specific to West vs East, and with such poor windows it may be noise.
+  - So the encoder analysis gives no evidence that the spontaneous gap is "in hearing". `11d_encoder_by_correctness.py`, `results/encoder_by_correctness.csv`.
 
 Scripts: `11a_confounds_rate.py`, `11b_microphone.py`, `11c_encoder_spont.py`. Tables: `results/m3_speakers_rate.csv`,
 `results/m3_microphone.csv`, `results/encoder_read_vs_spont.csv`.
+
+
+## Which words make up the gap (module 3, greedy)
+
+Here each reference word type's share of the West-East gap is computed directly, with no predefined classes.
+`11e_word_ranking.py`, `results/word_ranking.csv`.
+- **The gap is fairly concentrated.** The top 10 word types explain 39% of it, the top 50 explain 73%.
+- **Top words:** jeg, er, det, ja, som, så, der, en, nå, sjøl, ei, òg, heilt. Mostly short function words, and mostly deletions (e.g. "jeg" deleted 157 times for West speakers).
+- **Same words, worse recognition:** 74% of the gap comes from West speakers getting more errors on the same words. Only 26% comes from using error-prone words more often.
+- **Shared vocabulary:** on the 247 word types both areas use at least 5 times, the gap is still +7.4 points.
+
+## Final numbers (module 3, greedy, 95% CI over speakers)
+
+| Scoring | West | East | Gap (points) |
+|---|---|---|---|
+| WER as reported | 37.1% | 28.5% | +8.6 [+5.0, +12.2] |
+| WER, official spelling variants accepted (sjøl = selv, heilt = helt, òg = også …) | 36.3% | 28.0% | **+8.3** [+4.6, +11.9] |
+| Content words only (substitutions + deletions) | 38.7% | 30.4% | **+8.3** [+4.3, +12.2] |
+| Function words and fillers only | 32.0% | 24.2% | +7.8 [+4.0, +11.5] |
+
+How variants are accepted:
+- A substitution counts as correct when the reference and output forms share a Norsk ordbank lemma and tag.
+- A short documented list adds Nynorsk and radical forms (heilt, sjøl, òg …).
+- This accepts 181 West and 52 East substitutions. A few accepted pairs are doubtful (liker = like, 11 cases).
+
+**The West-East gap is about the same for content words as for function words.** Removing spelling differences
+changes it by 0.3 points. **The gap is general recognition difficulty, not spelling or a few
+function words.** `11f_final_numbers.py`.

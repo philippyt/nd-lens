@@ -1,8 +1,8 @@
 # norsk-dialect-probing
 
 **TL;DR:** A Norwegian speech model makes about 30% more errors on spontaneous speech from Western Norway than from
-Eastern Norway. Its encoder represents the same word almost equally across dialects, so the errors likely come from
-writing dialect speech as Bokmål. More dialect training data may help (untested).
+Eastern Norway. The gap holds across recording site, microphone, gender, age, speaking rate and spelling variants.
+Inside the model, Western and Eastern words look almost the same. What causes the gap is still open.
 
 Does the audio encoder of a Norwegian speech recognizer map different dialect pronunciations of the
 same word to similar internal representations (convergence), or do representations stay clustered
@@ -48,6 +48,7 @@ look *inside* the model: where in the encoder dialect information lives, and whe
 - **Central Norway (Trøndelag, Helgeland) is as high as West**, so the gap is East vs the rest rather than West in particular.
 - **The language model lowers every area but leaves the gap** (+7.6 points).
 - **Read speech showed a smaller gap**, about +16% relative with the same model.
+- **Nothing tested so far explains the gap.** It holds within one recording site, on both microphones, for both genders and age groups, and with speaking rate controlled. With official spelling variants accepted it is +8.3 points, and on content words only +8.3. Details in [`results/summary.md`](results/summary.md).
 
 ![Spontaneous speech WER by area](results/spontaneous_areas.png)
 
@@ -116,6 +117,15 @@ downloaded from the Hub on first use. Paths and subset size are in [`config.yaml
 | `scripts/09f_judge.py` | blind LLM judge of note fields against the reference |
 | `scripts/09g_manual_sheet.py` | blinded sheet of 30 cases for hand grading |
 | `scripts/09h_analysis.py` | ASR-caused note errors per area, flips, mixed models, checks |
+| `scripts/10a_error_taxonomy.py` | module 3 errors by class (dialect form, name/number, content, function) and their share of the West-East gap |
+| `scripts/10b_train_index.py` | text-only index of norsk-asr's Stortinget training shards with its own filters |
+| `scripts/10c_speaker_exposure.py` | training hours per NPSC speaker via referat clock times; WER vs exposure |
+| `scripts/11a_confounds_rate.py` | module 3 gap by site, gender, age; speech rate and a mixed model |
+| `scripts/11b_microphone.py` | module 3 decoded from the second (Shure) microphone |
+| `scripts/11c_encoder_spont.py` | encoder convergence on read vs spontaneous speech with CTC word windows |
+| `scripts/11d_encoder_by_correctness.py` | the same, split by correctly vs incorrectly recognised words |
+| `scripts/11e_word_ranking.py` | each word type's contribution to the West-East gap |
+| `scripts/11f_final_numbers.py` | gap with spelling variants accepted, and on content words only |
 
 Scripts that read downloaded data are run with `python -I`.
 
