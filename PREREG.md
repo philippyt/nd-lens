@@ -111,6 +111,36 @@ Run only if H1 is supported. It is planned in detail in step 9.
 - **Seeds:** two per arm.
 - **Evaluation:** greedy, as in H1.
 
+## Status (2026-10-17)
+
+- **H1, norsk-asr greedy on NB Tale module 3: supported.** All three preregistered criteria are met.
+  - Areas: West 37.1% (80 speakers) vs East 28.5% (40 speakers).
+  - WER gap: +8.6 points, +30% relative, CI [+16%, +47%].
+  - Misheard-word gap: +5.6 points, CI [+3.3, +7.7].
+  - With the LM: +7.6 points, +29%.
+  - NB Samtale goes the same direction for greedy, but only barely: +0.3 points, with 3 West speakers and a CI spanning zero. It adds essentially no evidence.
+- **Not run:** the comparison models (NB-Whisper large and small, nb-wav2vec2) and H2 were dropped on this machine, because of memory pressure in WSL during decoding. H1 is answered for norsk-asr only. [H2_PLAN.md](H2_PLAN.md) holds the design if it is picked up again.
+
 ## Deviations
 
-None yet.
+All logged on 2026-10-17, after the data was built and before any score was computed.
+
+1. **Broken-off words (module 3):** words marked `deadend="1"` in module 3 (false starts and broken-off words, 3,644 of
+   about 72,000 words) are left out of the references. The plan didn't cover them, and no model is expected to
+   transcribe word fragments.
+2. **Untimed boundaries (module 3):** sentence boundaries without a time can't be cut on, so the sentence continues
+   across them.
+3. **NB Samtale markers:**
+   - Segments whose `orthographic` text contains `%unint`, `%foreign`, `%unk` or `%overlapping` are dropped (197 of 8,801), parallel to the module 3 rule.
+   - Filler tags (`%eee`, `%mmm`, `%emm`, `%heh`, `%qqq`, `%ttt`) are removed from the references, like the fillers in module 3.
+   - Segments flagged as overlapping a neighbour are kept.
+4. **nb-wav2vec2 processor:** the repo ships a processor with a language model that doesn't load. The plain CTC processor is used, which gives the greedy decoding planned.
+5. **Training text check:** no training or LM text of any model was available locally, so contamination is checked with exact-match rates only.
+6. **NB-Whisper and NB Samtale:**
+   - A secondary source claims NB Samtale was in NB-Whisper's training data.
+   - The NB-Whisper model cards and the NoSTram paper (arXiv 2402.01917) list only NRK subtitles, audiobooks, NST and Stortinget.
+   - However, NbAiLab's `nostram` scripts evaluate on NB Samtale's test split, so the corpus was in their hands, and `ncc_speech` is gated.
+   - Since inclusion can be neither confirmed nor ruled out, **NB-Whisper results on NB Samtale are reported as possibly contaminated**, and the H1 comparison for all models relies on NB Tale module 3, as already planned.
+   - Added check: NB Samtale's splits share speakers, so each model's WER on the train split is compared with its WER on the test split, per speaker. Training on the train split would show as clearly lower train WER for NB-Whisper but not for the other models.
+7. **Speaker counts:** per Kuparinen, Parsons et al. (VarDial 2026), few speakers per area risks reading speaker effects as dialect effects. Speaker counts per area and per NB Tale group are reported next to every rate, and all intervals are over speakers.
+8. **NB Samtale West sample:** after the Bokmål filter, NB Samtale has only 3 West speakers (1.2 h). Its West-East comparison is reported, but it carries little weight.

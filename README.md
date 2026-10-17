@@ -22,6 +22,35 @@ Parsons et al. (2023), "A character-based analysis of impacts of dialects on end
 ASR" (NoDaLiDa), analyse the *output* errors of Norwegian ASR on NB Tale by dialect region. Here we
 look *inside* the model: where in the encoder dialect information lives, and whether it fades.
 
+## Results
+
+**Read speech** (NB Tale modules 1-2, 130 + 120 speakers). The full write-up is in [`results/summary.md`](results/summary.md).
+
+- **Convergence is only partial.** The same word is nearly as similar across dialects as within one (across / within ≥ 0.92 at every layer). The dialect gap peaks in the middle of the encoder (L8) and shrinks toward the top. Fine-tuning L12 changed none of this.
+- **Dialect is decodable from single words** from L5 upward: about 0.22 accuracy for 12 groups, against a 0.09 majority baseline.
+- **Region-level WER tracks distance from East** (Spearman 0.94 at L8), **but the link disappears at the token level.** Errors follow how atypical a token is in general, not its distance from Eastern pronunciation. The region-level correlation is not evidence of an Eastern bias.
+- **The layers where dialect peaks (L7-L9) are redundant in the mix.** Removing them leaves WER unchanged in every region.
+
+![Selected lag per layer](results/lag_per_layer.png)
+![Same word similarity](results/similarity.png)
+![Dialect group probe](results/dialect_probe.png)
+![WER and distance from East](results/wer_distance_scatter.png)
+![Token errors and distance](results/word_errors.png)
+
+**Spontaneous speech** (NB Tale module 3, 249 native speakers, norsk-asr only). Preregistered in [`PREREG.md`](PREREG.md).
+
+- **West WER is 37.1% against 28.5% East** (greedy): +8.6 points, +30% relative, 95% CI over speakers [+16%, +47%]. The misheard-word gap is +5.6 points, CI [+3.3, +7.7].
+- This meets the preregistered threshold for a meaningful gap, so **H1 is supported for norsk-asr**.
+- **Central Norway (Trøndelag, Helgeland) is as high as West**, so the gap is East vs the rest rather than West in particular.
+- **The language model lowers every area but leaves the gap** (+7.6 points).
+- **Read speech showed a smaller gap**, about +16% relative with the same model.
+
+![Spontaneous speech WER by area](results/spontaneous_areas.png)
+
+NB Samtale was decoded as a second set, but after the Bokmål filter it has only 3 West speakers, so its West-East
+comparison says little (+0.3 points, CI spanning zero). Comparisons with NB-Whisper and nb-wav2vec2, and the H2
+retraining experiment ([`H2_PLAN.md`](H2_PLAN.md)), were planned but not run on this machine.
+
 ## Setup
 
 ```bash
@@ -51,9 +80,10 @@ downloaded from the Hub on first use. Paths and subset size are in [`config.yaml
 | `scripts/05f_word_errors.py` | per-token distance from the Eastern and overall word centroids vs recognition errors; layer-mix weights vs dialect signal |
 | `scripts/05g_mix_ablation.py` | greedy WER per region with layer-mix weights reduced |
 | `scripts/05e_plots.py` | figures in `results/` (run last) |
-
-Findings from step 5 are in [`results/summary.md`](results/summary.md). The follow-up on spontaneous speech is
-preregistered in [`PREREG.md`](PREREG.md).
+| `scripts/08a_spont_data.py` | spontaneous segments: NB Tale module 3 cut at sentence boundaries (≤ 30 s), NB Samtale Bokmål segments |
+| `scripts/08b_decode.py` | norsk-asr greedy and 4-gram LM transcripts of all segments |
+| `scripts/08c_score.py` | WER, CER and misheard-word rate per area with speaker bootstrap CIs; West-East gap; contamination checks |
+| `scripts/08d_plots.py` | spontaneous WER figure |
 
 Scripts that read downloaded data are run with `python -I`.
 
@@ -64,6 +94,8 @@ NB Tale is downloaded from Språkbanken (`https://www.nb.no/sbfil/talegjenkjenni
 and `sennheiser_2.tar.gz` (module 2), unpacked under `data/nbtale/raw`. Only native speakers are
 used: groups 1-12 (one dialect region each) and group 24 (mixed regions, left out of dialect
 comparisons). Utterances whose prompt contains digits are skipped, as in norsk-asr's training.
+The spontaneous follow-up adds module 3 (`sennheiser_3.tar.gz`, 3.3 GB) and the Bokmål segments of
+[NB Samtale](https://huggingface.co/datasets/Sprakbanken/nb_samtale) under `data/nb_samtale`.
 
 Each sentence is tagged Bokmål, Nynorsk or unclear by counting words that exist in only one of the
 two Norsk ordbank full-form lists (`https://www.nb.no/sbfil/leksikalske_databaser/ordbank/`,

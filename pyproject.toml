@@ -5,7 +5,7 @@ description = "Do Norwegian dialects converge inside the norsk-asr (EmbeddingGem
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "norsk-asr",
+    "norsk-asr[lm]",
     "torch>=2.5",
     "numpy>=2.1",
     "pandas>=2.2",
