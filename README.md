@@ -126,6 +126,10 @@ downloaded from the Hub on first use. Paths and subset size are in [`config.yaml
 | `scripts/11d_encoder_by_correctness.py` | the same, split by correctly vs incorrectly recognised words |
 | `scripts/11e_word_ranking.py` | each word type's contribution to the West-East gap |
 | `scripts/11f_final_numbers.py` | gap with spelling variants accepted, and on content words only |
+| `scripts/12a_m3_logprobs.py` | module 3 CTC log-probs and the tune/test speaker split |
+| `scripts/12b_confidence.py` | confidence flagging of errors and deletions by area |
+| `scripts/12c_conv_lm.py` | conversational 4-gram LM with NB Tale text removed |
+| `scripts/12d_decoding_fixes.py` | blank penalty, LM retuning and conversational LM, gap by variant |
 
 Scripts that read downloaded data are run with `python -I`.
 

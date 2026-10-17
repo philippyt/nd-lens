@@ -219,3 +219,31 @@ How variants are accepted:
 **The West-East gap is about the same for content words as for function words.** Removing spelling differences
 changes it by 0.3 points. **The gap is general recognition difficulty, not spelling or a few
 function words.** `11f_final_numbers.py`.
+
+## Confidence flagging and decoding fixes (module 3)
+
+Speakers are split 50/50 within each area. Settings and thresholds are chosen on one half, and numbers are
+reported on the other half (125 speakers), with 95% CIs over speakers.
+
+**Confidence flagging works equally well for West and East.** Word confidence is the lowest CTC posterior in
+the word. Flagging the lowest 20% of words catches about 50% of misrecognised words in both areas (greedy:
+West 50%, East 50%; AUROC 0.80 vs 0.81). Deleted words sit in stretches where the model hears speech but
+writes nothing. Flagging the top 20% of those stretches catches about 45% of deletions in both areas. No
+West-East difference is significant. `12b_confidence.py`, `confidence_areas.csv`, `confidence_west_east.csv`.
+
+**Retuned decoding cuts WER by about 7 points and removes most of the deletion gap.** The shipped LM settings
+(α 0.6, β 1) were tuned on read and parliament speech. On spontaneous speech they raise deletions from 11.4% to 18.7%.
+
+| Decoding (test half) | WER | West | East | Gap | Deletion gap |
+|---|---|---|---|---|---|
+| Greedy | 34.8 | 37.1 | 29.6 | +7.5 [+2.6, +12.5] | +2.0 [−0.2, +4.2] |
+| LM as shipped (α 0.6, β 1) | 33.3 | 35.1 | 28.0 | +7.1 [+1.6, +12.5] | +3.9 [−0.2, +7.7] |
+| LM retuned (α 0.4, β 2) + blank penalty 1.0 | **27.1** | 28.4 | 23.4 | +5.0 [+0.5, +9.3] | +0.8 [−0.8, +2.3] |
+
+The gap shrinks by 2.6 points [−4.0, −1.1] compared with greedy on the same speakers. West is still about 21%
+worse than East (26% with greedy). **The remaining gap is mainly substitutions:** +4.3 [+1.2, +7.3] of the
++5.0 points (deletions +0.8, insertions −0.2).
+
+A conversational 4-gram LM did not help. It was built from NB Samtale and NPSC train (1.0M words, with no NB
+Tale text) and mixed with the shipped LM at decoding time. On the tune half, WER rose as its weight went up.
+`12c_conv_lm.py`, `12d_decoding_fixes.py`, `decoding_fixes.csv`.
