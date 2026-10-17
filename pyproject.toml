@@ -15,6 +15,7 @@ dependencies = [
     "scipy>=1.13",
     "matplotlib>=3.9",
     "statsmodels>=0.15.0",
+    "openpyxl>=3.1.5",
 ]
 
 [build-system]

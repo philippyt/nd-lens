@@ -51,6 +51,26 @@ look *inside* the model: where in the encoder dialect information lives, and whe
 
 ![Spontaneous speech WER by area](results/spontaneous_areas.png)
 
+**From transcript to structured note** (Stortinget as a stand-in for clinical consultations: NPSC test and eval, 332
+speeches, 101 speakers)
+
+- **Pipeline:** norsk-asr with the LM transcribes each speech, then Gemma 4 12B writes a note with problem, facts, standpoint and proposed measures.
+- **Comparison:** each speech gets one note from the ASR transcript and two from the reference transcript.
+- **Judge:** a blind LLM judge (Qwen 3.5 9B) grades every field against the reference.
+- **What counts:** an error counts as ASR-caused only if neither reference note has it.
+
+Findings:
+- About 12% of note fields contain an ASR-caused error, and 6% are confidently wrong (misheard, invented or misattributed).
+- **The rate is the same for West and East** (12.8% vs 12.8%, difference CI [−6.4, +6.1] points), with or without party in the model.
+- Negations and numbers are lost at similar rates in all areas.
+- Standpoint flips are rare (4 of 332), fewer than the LLM's own run-to-run flips (25 of 332).
+
+**Caveat:** the judge is not yet validated. It agrees with itself only at kappa 0.09-0.44 when grading the same note
+twice, and some flips it reports are judge errors. These numbers are provisional until checked against 30 hand-graded
+cases.
+
+![Recognition errors in notes by area](results/note_errors_areas.png)
+
 NB Samtale was decoded as a second set, but after the Bokmål filter it has only 3 West speakers, so its West-East
 comparison says little (+0.3 points, CI spanning zero). Comparisons with NB-Whisper and nb-wav2vec2, and a dialect-balanced
 retraining experiment, were planned but not run on this machine.
@@ -88,6 +108,14 @@ downloaded from the Hub on first use. Paths and subset size are in [`config.yaml
 | `scripts/08b_decode.py` | norsk-asr greedy and 4-gram LM transcripts of all segments |
 | `scripts/08c_score.py` | WER, CER and misheard-word rate per area with speaker bootstrap CIs; West-East gap; contamination checks |
 | `scripts/08d_plots.py` | spontaneous WER figure |
+| `scripts/09a_npsc_data.py` | NPSC test/eval sentences and speeches; speakers matched to Stortinget and Wikidata birthplaces and mapped to dialect areas (Parsons' municipality mapping) |
+| `scripts/09b_decode_npsc.py` | norsk-asr greedy and LM transcripts of NPSC |
+| `scripts/09c_critical.py` | negations and numbers preserved, dropped or substituted, per area |
+| `scripts/09d_sample.py` | balanced sample of speeches for the note experiment |
+| `scripts/09e_notes.py` | structured notes with a local LLM (Ollama; Windows Python, standard library only) |
+| `scripts/09f_judge.py` | blind LLM judge of note fields against the reference |
+| `scripts/09g_manual_sheet.py` | blinded sheet of 30 cases for hand grading |
+| `scripts/09h_analysis.py` | ASR-caused note errors per area, flips, mixed models, checks |
 
 Scripts that read downloaded data are run with `python -I`.
 
