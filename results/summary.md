@@ -137,3 +137,31 @@ Exploratory ablation:
 - WER and CER are greedy without a language model, and only Bokmål prompts are used. Nynorsk prompts have about 50% WER for every group, because the model only writes Bokmål.
 - 12 groups is a small n for the correlation. Groups g01-g04, g07, g09 and g10 include speakers recorded at UiT or UiA.
 - With 100 permutations, p cannot go below 0.01.
+
+
+## Spontaneous speech: two explanations that failed (module 3 and NPSC)
+
+The West-East gap on NB Tale module 3 (norsk-asr greedy, +8.6 WER points) was tested against two explanations.
+**Both failed.**
+
+**1. "The model writes dialect as Bokmål wrongly."** Not supported. Each substitution or deletion was classified with Norsk ordbank, the module 3 dialect annotations and a hand list. 48-49 of 50 random cases checked by hand were classed correctly.
+
+| Error class | Share of the West-East gap |
+|---|---|
+| Dialect form written in the output (eg, ikkje, kjem …) | **1%** [−2, 4] |
+| Dialect-variable word lost (jeg, ikke, vi, hun …), mostly deletions | 10% [5, 15] |
+| Name or number | 7% |
+| Other content word | 38% [28, 49] |
+| Function word | 37% [20, 49] |
+| Insertions | 7% |
+
+**Writing dialect speech as Bokmål explains about 1% of the gap.** Even the upper bound, which counts every lost dialect-variable word, is about 11%. The rest is general misrecognition, more frequent for Western speakers. `10a_error_taxonomy.py`, `results/taxonomy_gap.csv`.
+
+**2. "Speakers the model trained on get lower WER."** Not supported, tested on NPSC.
+- **Exposure measured:** norsk-asr's 1,337 h of Stortinget training segments were attributed to speakers through clock times in the official referat. 99.4% got a speaker, and a text check confirmed 97.5% of those. NPSC train speakers were added.
+- **Overlap:** all 119 named NPSC test/eval speakers occur in training, with a median of 4.1 h each. No test/eval meeting day is in training.
+- **Exposure doesn't predict WER:** Spearman −0.01 (101 speakers with ≥ 20 sentences). The slope on log training hours is −0.001 [−0.017, +0.016], with dialect area in the model.
+- `10b_train_index.py`, `10c_speaker_exposure.py`, `results/speaker_exposure.csv`.
+
+So the read-speech story ("the encoder hears dialects nearly alike, the problem is downstream") is not confirmed for
+spontaneous speech either: the errors are not dialect spellings.
