@@ -1,9 +1,8 @@
 # norsk-dialect-probing
 
 **TL;DR:** A Norwegian speech model makes about 30% more errors on spontaneous speech from Western Norway than from
-Eastern Norway. Yet inside the model, its encoder represents the same word almost as alike across dialects as
-within one. The gap likely lies in turning dialect speech into written Bokmål, not in hearing it. More dialect
-training data may close it (untested, see [`H2_PLAN.md`](H2_PLAN.md)).
+Eastern Norway. Its encoder represents the same word almost equally across dialects, so the errors likely come from
+writing dialect speech as Bokmål. More dialect training data may help (untested, see [`H2_PLAN.md`](H2_PLAN.md)).
 
 Does the audio encoder of a Norwegian speech recognizer map different dialect pronunciations of the
 same word to similar internal representations (convergence), or do representations stay clustered
