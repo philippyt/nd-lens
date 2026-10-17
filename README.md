@@ -2,7 +2,7 @@
 
 **TL;DR:** A Norwegian speech model makes about 30% more errors on spontaneous speech from Western Norway than from
 Eastern Norway. Its encoder represents the same word almost equally across dialects, so the errors likely come from
-writing dialect speech as Bokmål. More dialect training data may help (untested, see [`H2_PLAN.md`](H2_PLAN.md)).
+writing dialect speech as Bokmål. More dialect training data may help (untested).
 
 Does the audio encoder of a Norwegian speech recognizer map different dialect pronunciations of the
 same word to similar internal representations (convergence), or do representations stay clustered
@@ -41,10 +41,10 @@ look *inside* the model: where in the encoder dialect information lives, and whe
 ![WER and distance from East](results/wer_distance_scatter.png)
 ![Token errors and distance](results/word_errors.png)
 
-**Spontaneous speech** (NB Tale module 3, 249 native speakers, norsk-asr only). Preregistered in [`PREREG.md`](PREREG.md).
+**Spontaneous speech** (NB Tale module 3, 249 native speakers, norsk-asr only). The analysis plan was fixed before decoding.
 
 - **West WER is 37.1% against 28.5% East** (greedy): +8.6 points, +30% relative, 95% CI over speakers [+16%, +47%]. The misheard-word gap is +5.6 points, CI [+3.3, +7.7].
-- This meets the preregistered threshold for a meaningful gap, so **H1 is supported for norsk-asr**.
+- This meets the threshold for a meaningful gap set before decoding, so **H1 is supported for norsk-asr**.
 - **Central Norway (Trøndelag, Helgeland) is as high as West**, so the gap is East vs the rest rather than West in particular.
 - **The language model lowers every area but leaves the gap** (+7.6 points).
 - **Read speech showed a smaller gap**, about +16% relative with the same model.
@@ -52,8 +52,8 @@ look *inside* the model: where in the encoder dialect information lives, and whe
 ![Spontaneous speech WER by area](results/spontaneous_areas.png)
 
 NB Samtale was decoded as a second set, but after the Bokmål filter it has only 3 West speakers, so its West-East
-comparison says little (+0.3 points, CI spanning zero). Comparisons with NB-Whisper and nb-wav2vec2, and the H2
-retraining experiment ([`H2_PLAN.md`](H2_PLAN.md)), were planned but not run on this machine.
+comparison says little (+0.3 points, CI spanning zero). Comparisons with NB-Whisper and nb-wav2vec2, and a dialect-balanced
+retraining experiment, were planned but not run on this machine.
 
 ## Setup
 

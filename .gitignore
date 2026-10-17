@@ -5,3 +5,7 @@ outputs/
 *.pyc
 uv.toml
 uv.lock
+PREREG*.md
+H2_PLAN.md
+*_PLAN.md
+plans/
