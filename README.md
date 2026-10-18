@@ -1,8 +1,10 @@
 # norsk-dialect-probing
 
-**TL;DR:** A Norwegian speech model makes about 30% more errors on spontaneous speech from Western Norway than from
-Eastern Norway. The gap holds across recording site, microphone, gender, age, speaking rate and spelling variants.
-Inside the model, Western and Eastern words look almost the same. What causes the gap is still open.
+**TL;DR:** A Norwegian speech model makes 26–30% more errors on spontaneous speech from Western Norway than from
+Eastern Norway with standard decoding. With decoding retuned for conversation the gap shrinks to about 21%
+(+5.0 points), mostly misrecognised words. The gap holds across recording site, microphone, gender, age, speaking
+rate and spelling variants. Inside the model, Western and Eastern words look almost the same. What causes the gap
+is still open.
 
 Does the audio encoder of a Norwegian speech recognizer map different dialect pronunciations of the
 same word to similar internal representations (convergence), or do representations stay clustered
@@ -130,6 +132,11 @@ downloaded from the Hub on first use. Paths and subset size are in [`config.yaml
 | `scripts/12b_confidence.py` | confidence flagging of errors and deletions by area |
 | `scripts/12c_conv_lm.py` | conversational 4-gram LM with NB Tale text removed |
 | `scripts/12d_decoding_fixes.py` | blank penalty, LM retuning and conversational LM, gap by variant |
+| `scripts/12e_samtale_check.py` | retuned decoding on NB Samtale's Bokmål test split |
+| `scripts/12f_benchmarks.py` | shipped vs retuned decoding on norsk-asr's README benchmarks |
+| `scripts/13a_llm_inputs.py` | module 3 test-half transcripts with flagged words and gaps for the LLM |
+| `scripts/13b_llm_correct.py` | LLM correction through Ollama, full rewrite or flagged spots only |
+| `scripts/13c_llm_analysis.py` | WER, broken and invented words, West-East gap after LLM correction |
 
 Scripts that read downloaded data are run with `python -I`.
 

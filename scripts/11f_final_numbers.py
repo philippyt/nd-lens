@@ -1,16 +1,9 @@
-from collections import defaultdict
-
 import numpy as np
 import pandas as pd
 
 from dialect_probing.config import load_config
-from dialect_probing.written_standard import LEXICONS
+from dialect_probing.variants import load_lexicon, same_variant
 
-CROSS = {("sjøl", "selv"), ("heilt", "helt"), ("heile", "hele"), ("òg", "også"), ("ifra", "fra"), ("sia", "siden"),
-         ("anna", "annet"), ("trondhjem", "trondheim"), ("ikkje", "ikke"), ("noko", "noe"), ("mykje", "mye"),
-         ("berre", "bare"), ("heim", "hjem"), ("heime", "hjemme"), ("meir", "mer"), ("kva", "hva"), ("frå", "fra"),
-         ("no", "nå"), ("dei", "de"), ("ho", "hun"), ("eg", "jeg"), ("ein", "en"), ("eit", "et"), ("vore", "vært"),
-         ("vart", "ble"), ("sjå", "se"), ("kjem", "kommer"), ("korleis", "hvordan"), ("kor", "hvor")}
 FUNC_POS = {"pron", "prep", "konj", "sbu", "det", "inf-merke", "interj"}
 FUNC_EXTRA = {"jeg", "er", "det", "en", "ja", "så", "nå", "har", "når", "hadde", "var", "ha", "skal", "skulle", "vil",
               "ville", "kan", "kunne", "må", "blir", "bli", "ble", "blitt", "vært", "være", "da", "jo", "liksom", "altså",
@@ -29,17 +22,9 @@ def boot(df: pd.DataFrame, num: str, den: str, rng) -> tuple[float, float, float
 def main():
     cfg = load_config()
     out = cfg["out_dir"] / "spont"
-    forms, tags = defaultdict(set), defaultdict(set)
-    with open(cfg["data_dir"] / "ordbank" / LEXICONS["nob"], encoding="latin-1") as f:
-        next(f)
-        for line in f:
-            c = line.split("\t")
-            if len(c) > 3:
-                w = c[2].lower()
-                forms[w].add((c[1], c[3].replace(" normert", "").strip()))
-                tags[w].add(c[3].split()[0])
+    forms, tags = load_lexicon(cfg["data_dir"] / "ordbank")
     t = pd.read_parquet(out / "m3_token_outcomes.parquet")
-    t["variant_ok"] = [o == "substituted" and (bool(forms.get(w, set()) & forms.get(a, set())) or (w, a) in CROSS)
+    t["variant_ok"] = [o == "substituted" and same_variant(forms, w, a)
                        for o, w, a in zip(t["outcome"], t["word"], t["output"])]
     t["err_tol"] = ((t["outcome"] != "correct") & ~t["variant_ok"]).astype(int)
     t["func"] = [w in FUNC_EXTRA or bool(tags.get(w, set()) & FUNC_POS) for w in t["word"]]

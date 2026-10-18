@@ -247,3 +247,42 @@ worse than East (26% with greedy). **The remaining gap is mainly substitutions:*
 A conversational 4-gram LM did not help. It was built from NB Samtale and NPSC train (1.0M words, with no NB
 Tale text) and mixed with the shipped LM at decoding time. On the tune half, WER rose as its weight went up.
 `12c_conv_lm.py`, `12d_decoding_fixes.py`, `decoding_fixes.csv`.
+
+## LLM correction of transcripts (module 3)
+
+An off-the-shelf Norwegian LLM (Borealis 2 26B-A4B preview, Q3_K_M, the largest that fits in 16 GB) corrects
+the test-half transcripts, with temperature 0 and the speaker's previous segment as context. In variant (a) it
+may rewrite the whole segment. In variant (b) it may only change words flagged as low-confidence (bottom 20%)
+and fill flagged deletion stretches; any other edit is dropped in code. An output is rejected (the ASR text is
+kept) when its length is outside 0.5–1.5× the input + 3 words, or when a segment of 5 words or fewer gains
+more than 3 words. Rejections count as attempted inventions. 61 of 2,471 calls failed (malformed JSON) and keep
+the ASR text. Scoring accepts official spelling variants; plain WER gives the same picture.
+
+| Input, variant | WER before | WER after | Change | Words broken | Invented words | Rejected (attempted inventions) |
+|---|---|---|---|---|---|---|
+| Greedy, (a) rewrite | 34.1 | 30.0 | **−4.1** [−4.5, −3.8] | 0.7 | 0.3 | 28 of 618 |
+| Greedy, (b) flagged only | 34.1 | 33.1 | −0.9 [−1.3, −0.5] | 0.4 | 0.9 | 43 of 618 |
+| Retuned LM, (a) rewrite | 26.1 | **25.2** | −0.9 [−1.1, −0.7] | 0.5 | 0.1 | 15 of 618 |
+| Retuned LM, (b) flagged only | 26.1 | 26.7 | +0.6 [+0.3, +1.0] | 0.5 | 0.7 | 21 of 617 |
+
+Broken and invented words are per 100 reference words. Invented words are new words aligned as insertions
+against the reference.
+
+**The LLM fixes errors without inventing much, but most of what it fixes the retuned LM already fixes.** On
+greedy output, rewriting cuts WER by 4.1 points. On retuned LM output it cuts 0.9 points. Invented words stay
+at or below 0.3 per 100 words in variant (a). **Restricting edits to flagged spots does worse than free
+rewriting.** The model wants to change unflagged words too (820 dropped edits in 370 greedy segments), and
+filling gaps adds more inventions than it recovers.
+
+**The LLM does not change the relative West-East gap.**
+
+| Input, variant | Gap before | Gap after | Change [paired CI] | West/East before → after |
+|---|---|---|---|---|
+| Greedy, (a) | +7.2 | +6.1 | −1.0 [−2.0, −0.04] | 1.25 → 1.24 |
+| Greedy, (b) | +7.2 | +6.1 | −1.0 [−2.4, +0.1] | 1.25 → 1.21 |
+| Retuned LM, (a) | +4.4 | +3.7 | −0.6 [−1.2, +0.0] | 1.19 → 1.17 |
+| Retuned LM, (b) | +4.4 | +4.2 | −0.1 [−1.3, +0.6] | 1.19 → 1.18 |
+
+West gains slightly more points because it has more errors to fix (greedy (a): West −4.6, East −3.6). The ratio
+does not move. West also has more rejected rewrites (greedy (a): 14 of 199 calls vs 3 of 104 for East).
+`13a_llm_inputs.py`, `13b_llm_correct.py`, `13c_llm_analysis.py`, `llm_correction.csv`, `llm_correction_gap.csv`.
