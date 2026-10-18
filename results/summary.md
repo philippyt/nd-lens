@@ -284,5 +284,13 @@ filling gaps adds more inventions than it recovers.
 | Retuned LM, (b) | +4.4 | +4.2 | −0.1 [−1.3, +0.6] | 1.19 → 1.18 |
 
 West gains slightly more points because it has more errors to fix (greedy (a): West −4.6, East −3.6). The ratio
-does not move. West also has more rejected rewrites (greedy (a): 14 of 199 calls vs 3 of 104 for East).
+does not move.
+
+West has more rejected rewrites with greedy (a): 14 of 199 calls (7.0%) vs 3 of 104 for East (2.9%), odds ratio
+2.5, Fisher exact p = 0.19 (two-sided). This is only a hint that the LLM attempts more inventions on Western
+transcripts. The test counts calls, not speakers, and the other three settings show no clear pattern.
+
+**Post-hoc fixes lower WER for all areas but leave the relative West-East gap roughly unchanged.** Retuned
+decoding and LLM correction each help every area. The best pipeline (retuned LM, then LLM rewrite) reaches
+25.2% WER, and West is still +3.7 points (about 17%) worse than East, compared with 25% with greedy decoding.
 `13a_llm_inputs.py`, `13b_llm_correct.py`, `13c_llm_analysis.py`, `llm_correction.csv`, `llm_correction_gap.csv`.
