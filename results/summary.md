@@ -407,3 +407,42 @@ This matches the blog's limit from the other side. A learned convention can be l
 hand, but it is spread across many units, and no single readable edit removes it.
 `15_edit_loop.py`, `15b_reader_lens.py`, `15c_reader_branches.py`, `15d_suppression_units.py`, `15e_edit_effect.py`,
 `edits/`, `reader_lens.csv`, `reader_branches.csv`, `suppression_units_*.csv`, `edit_effect_*.csv`.
+
+## Step C: verbatim transcripts remove the spoken-word deletions (module 3, greedy)
+
+The plan was fixed before training (`PREREG_C.md`, hash in `prereg_hashes.txt`). Two copies of norsk-asr were
+fine-tuned with identical settings on 16 h of parliament speech each. Only the transcripts differ: verbatim NPSC
+train, or the edited Stortinget transcripts the model was mostly trained on. Both sources were already in the
+original training data. Reader, projection, layer mix and head were trained; the encoder stayed frozen. Settings:
+AdamW 5e-5, 3 epochs, about 300 steps, about 6 minutes on an H100.
+
+| Per 1000 words in the fine-tuning text | så | ja | jo | da | du | man |
+|---|---|---|---|---|---|---|
+| Verbatim (NPSC) | 10.1 | 1.3 | 3.1 | 3.7 | 1.1 | 2.9 |
+| Edited (Stortinget) | 3.9 | 0.2 | 0.9 | 2.2 | 0.2 | 4.6 |
+
+| Test half | WER | West | East | Gap | Deletions (% of ref words) | så/ja/jo/da/du deleted | du written as man |
+|---|---|---|---|---|---|---|---|
+| Base | 34.8 | 37.0 | 29.7 | +7.2 | 11.4 | 44.4% | 28.6% |
+| Edited arm | 35.9 | 38.0 | 31.0 | +7.1 | 12.6 | 47.7% | 39.6% |
+| Verbatim arm | **30.0** | 31.9 | 26.0 | +5.8 | 5.7 | **10.5%** | **0.0%** |
+
+**P1, supported.** The spoken words are deleted 37.2 points less often with verbatim than with edited
+transcripts (paired CI [−40.3, −34.2]). The edited arm deletes more than the base model (+3.3 [+1.6, +5.1]), so the
+effect runs in both directions with the domain held fixed. **P2, supported.** "du" written as "man" falls from 39.6%
+to 0% [−49.6, −26.2]; the edited arm raises it (+11.0 [+4.9, +18.4]). Every area gains 4.5 to 5.9 points of WER,
+and overall deletions halve.
+
+**P3, supported as worded, with a caveat.** The 19 suppression units no longer separate deleted from kept så/og
+(deleted-minus-kept push 1.97 in the edited arm, 0.24 in the verbatim arm, tune half). They do not go quiet:
+their mean push at så/og barely changes (0.95 vs 0.84). The fine-tuned reader overrides them downstream instead.
+
+**P4, not supported as worded.** The gap changes by −1.3 points on the test half ([−3.1, +0.4]) and +1.2 on the
+tune half ([−0.6, +3.0]), so not consistently and not by less than 1 point. Transcript style explains the most
+frequent errors in every area, not the West-East gap.
+
+Part of the WER gain is the model matching the module 3 reference style, which is verbatim too. That is the point:
+the deletions came from transcription conventions in the training data, not from mishearing. Deviation from the
+plan: the trainer's length filter left 15.84 h in the verbatim arm against 16.06 h (1.4%, plan said within 1%).
+`16a_style_data.py`, `16b_style_finetune.py`, `16c_style_eval.py`, `style_finetune.csv`, `style_tests.csv`,
+`style_units.csv`.

@@ -129,8 +129,8 @@ def main():
     tests.to_csv(ROOT / "results" / "style_tests.csv", index=False)
     pct = lambda x: f"{100 * x:+.1f}"
     print("\npaired comparisons (to minus from), 95% speaker-bootstrap CIs:")
-    for r in tests.itertuples():
-        print(f"  {r.half} {r._3:>8s} -> {r.to:8s} spoken deletions {100 * r.spoken_del_from:.1f} -> {100 * r.spoken_del_to:.1f} "
+    for r in tests.rename(columns={"from": "src"}).itertuples():
+        print(f"  {r.half} {r.src:>8s} -> {r.to:8s} spoken deletions {100 * r.spoken_del_from:.1f} -> {100 * r.spoken_del_to:.1f} "
               f"[{pct(r.spoken_del_diff_lo)},{pct(r.spoken_del_diff_hi)}]  du->man {100 * r.du_man_from:.1f} -> {100 * r.du_man_to:.1f} "
               f"[{pct(r.du_man_diff_lo)},{pct(r.du_man_diff_hi)}]  gap {pct(r.gap_from)} -> {pct(r.gap_to)} [{pct(r.gap_change_lo)},{pct(r.gap_change_hi)}]")
     print("\nsuppression units at så/og (tune half):")
