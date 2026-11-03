@@ -294,3 +294,80 @@ transcripts. The test counts calls, not speakers, and the other three settings s
 decoding and LLM correction each help every area. The best pipeline (retuned LM, then LLM rewrite) reaches
 25.2% WER, and West is still +3.7 points (about 17%) worse than East, compared with 25% with greedy decoding.
 `13a_llm_inputs.py`, `13b_llm_correct.py`, `13c_llm_analysis.py`, `llm_correction.csv`, `llm_correction_gap.csv`.
+
+## Weight-space reading and hand edits (module 3, greedy)
+
+After [weight-space programming](https://rikiyat.github.io/blog/weight-space-programming/): read what the
+fine-tune changed in L12, then edit weights by hand (no gradients) and keep an edit only if it helps on the tune
+half. Each decode of a half takes about 8 s on an H100.
+
+**The L12 fine-tune barely matters for spontaneous speech.** Swapping Google's L12 back in costs 0.7 points on
+the tune half and 0.2 on the test half, although the reader was trained on top of the fine-tuned layer. No part
+of L12 moves the gap when reverted alone (every change CI spans zero), and scaling the whole change from 0.25×
+to 1.5× is flat. Only 2× hurts (+3 points).
+
+| L12 (test half) | WER | West | East | Gap | Gap change |
+|---|---|---|---|---|---|
+| Fine-tuned | 34.8 | 37.0 | 29.7 | +7.2 [+2.3, +12.4] | |
+| Original (Google) | 35.0 | 37.4 | 29.9 | +7.5 | +0.3 [−0.9, +1.2] |
+
+So the Norwegian ability and the gap live in the reader, the layer mix and the head, which were trained from
+scratch. This extends the read-speech result above (fine-tuning L12 changed no probe) to WER.
+
+**The change is spread out, except in the relative position projection.** Most matrices change by about 6% with
+an effective rank in the hundreds. The relative position projection is nearly rank one: 61% of its learned
+change is one component, a smooth ramp from the nearest to the farthest frame (0.5 s back), mostly in heads 0, 4
+and 7. Reverting it alone changes nothing (gap change [−0.5, +0.1]).
+
+**The change is not tuned to dialect.** The West-East direction of L12's input (word-centred speaker means,
+analysis half) excites the change no more than directions from shuffled speaker labels (ratio 0.74–1.15, all
+p > 0.13). Google's weights look the same.
+
+**Hand edits do not close the gap** (tune half, base gap +9.6):
+
+| Edit | West | East | Gap change |
+|---|---|---|---|
+| Erase the West-East direction from the reader input, k = 1 | 36.8 | 27.7 | −0.5 [−1.1, +0.2] |
+| Erase k = 3 / k = 5 | 38.3 / 38.7 | 28.8 / 29.6 | −0.2 / −0.5, CIs span zero |
+| Erase directions from shuffled labels, k = 1–5 | | | −0.3 to +1.2 |
+| Bias on '▁j' +2 | 37.3 | 27.6 | +0.1 (deletions become substitutions) |
+| Move 50% of the L12 mix weight to L5-L6 | 39.1 | 28.6 | +0.9 [−0.2, +1.9] |
+
+**Why West loses "jeg".** The largest single excess is deleted "jeg" (West 7.3 per 1000 words, East 3.2). At those
+spots the head does hear speech (median top non-blank probability 0.90), but the top piece is "e" without a word
+boundary, glued onto a neighbouring word: West "eg"/"e" is written as part of another word. A bias on '▁j' cannot
+fix this. Recovering half the deleted cases needs +2, which fires on 0.4% of all other frames. The excess is a
+long tail: the top 40 word pairs explain 32% of it.
+
+The West gap is not one removable obstacle, matching the blog's own finding that edits remove obstacles but do
+not add abilities. `14a_l12_revert.py`, `14b_l12_delta.py`, `14c_hand_edits.py`, `14d_jeg_windows.py`,
+`l12_revert.csv`, `l12_delta.csv`, `l12_delta_alignment.csv`, `hand_edits.csv`, `word_pair_excess.csv`, `jeg_windows.csv`.
+
+## The model writes like a parliament transcript (module 3, greedy)
+
+Most of norsk-asr's training audio (1,337 of 1,680 h) is Stortinget with edited transcripts. Edited Norwegian
+drops spoken-language words, and so does the model.
+
+| Per 1000 words | Stortinget training text | Module 3 references | Ratio |
+|---|---|---|---|
+| så | 3.8 | 28.6 | 7.6 |
+| ja | 0.3 | 5.7 | 21 |
+| du | 0.2 | 3.0 | 14 |
+| man | 4.6 | 3.1 | 0.7 |
+| "ellers så" | 0.001 | 1.0 | about 1300 |
+| resumptive "X så VERB" ("i sommer så har jeg") | 0.5 | 7.4 | 14 |
+
+With a blank penalty of 1.0 the most frequent errors (all areas, tune half) are deleted "så" (331) and "og" (272),
+ahead of "jeg" (150), and "du" written as "man" (52). Where "så" is deleted the model still hears a word (the top non-blank piece is usually "å" with no word
+start), but the reader's state there is a generic "write nothing" state: the kept-minus-deleted difference
+lowers the blank and raises every other piece alike.
+
+**Across words, training under-exposure predicts errors.** For the 203 word types with at least 20 tune-half
+tokens, the log ratio of module 3 to training frequency predicts the deletion rate (Spearman +0.22, p = 0.002) and
+the substitution rate (+0.42, p < 10⁻⁹). In a regression weighted by tokens, with word length and frequency
+controlled, each log unit adds 5.7 points of deletions. The top under-exposed words are spoken a-forms
+("flytta", "jobba", "anna"), substituted 69–75% of the time (as "flyttet", "jobbet", "annet").
+
+This is a style effect, not dialect: West has about a third of all så and og deletions, close to its share of
+words. It does say where the remaining errors come from: the training transcripts, not the audio.
+`14e_train_conventions.py`, `train_conventions.csv`, `word_underexposure.csv`.

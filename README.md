@@ -54,6 +54,12 @@ look *inside* the model: where in the encoder dialect information lives, and whe
 
 ![Spontaneous speech WER by area](results/spontaneous_areas.png)
 
+**Inside the weights** (module 3, greedy; after [weight-space programming](https://rikiyat.github.io/blog/weight-space-programming/))
+
+- **The fine-tuned top encoder layer barely matters.** Swapping Google's original L12 back in costs 0.2 points on the test half and leaves the gap unchanged.
+- **Hand-written weight edits do not close the gap.** Erasing the West-East direction from the reader input does no more than erasing directions from shuffled labels. The largest West excess, deleted "jeg", is heard but written as "e" glued onto a neighbouring word.
+- **The model writes like a parliament transcript.** Most of its training text is edited Stortinget proceedings, which rarely contain spoken "så", "ja" or "du" (7–21× rarer than in module 3). Words that are rarer in training are deleted and substituted more often (Spearman +0.22 and +0.42 over 203 word types). This is style, not dialect, but it explains the most frequent errors.
+
 **From transcript to structured note** (Stortinget as a stand-in for clinical consultations: NPSC test and eval, 332
 speeches, 101 speakers)
 
