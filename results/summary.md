@@ -371,3 +371,39 @@ controlled, each log unit adds 5.7 points of deletions. The top under-exposed wo
 This is a style effect, not dialect: West has about a third of all så and og deletions, close to its share of
 words. It does say where the remaining errors come from: the training transcripts, not the audio.
 `14e_train_conventions.py`, `train_conventions.csv`, `word_underexposure.csv`.
+
+## Edit loop: read, write an edit, keep it if it helps (module 3, greedy)
+
+`15_edit_loop.py` keeps a stack of hand-written edits (`edits/*.py`, each with its reasoning). `read` profiles the
+current stack's errors, `probe` force-aligns one word and reports what the head emits where it is kept or deleted,
+and `try` scores a candidate on top of the stack. The target is the mean WER over the five areas on the tune half.
+An edit is accepted only if that drops by at least 0.1 points and West does not get worse. The test half is left
+for `final`, once, at the end. Every pass is logged in `outputs/edit_loop/log.jsonl`.
+
+| Edit | Reasoning | Mean WER change | West | East | Result |
+|---|---|---|---|---|---|
+| 01 blank logit −1.0 | deletions outnumber insertions 4:1 | −1.65 | −1.14 | −1.94 | accepted |
+| 02 all word starts +0.5 | deleted words come out without a word start | +0.26 | +0.37 | +0.17 | rejected |
+| 03 cut 6 suppression units | see below | −0.01 | −0.08 | −0.03 | rejected |
+| 04 flip 19 suppression units | see below | −0.09 | −0.12 | −0.25 | rejected (just under 0.1) |
+
+Edit 01 is the blank penalty from `12d`, written into the head. It widens the tune-half gap by 0.8 points
+(CI [−0.2, +1.9]).
+
+**Spoken "så" and "og" are dropped late in the reader by a handful of units.** Applying the head after each reader
+block (logit lens), kept and deleted tokens look alike up to block 2 and split from block 3 on. At the last block a
+deleted "og" has 0.53 non-blank probability in its window against 0.97 for a kept one ("så": 0.80 vs 0.96).
+Deleted "jeg" does not split (0.98 vs 0.99): it is written as something else, not suppressed. The extra push
+toward blank comes from local branches (block 5 convolution, block 4 feed-forward), not attention.
+
+In block 4 a few feed-forward units push toward blank at deleted "så"/"og" and almost nowhere else. Cutting six of
+them (edit 03) lowers så/og deletions from 612 to 589. Flipping the 19 units with that profile (edit 04) lowers
+them to 511, a 17% cut: 67 deleted tokens come back as the right word, and only 11 kept tokens become deleted.
+The units are specific: deletions of "ja", "jo", "da" fall 5%, "er" and "det" 7%, and "jeg" not at all (145 to 150). Selecting
+over 14 function words at once finds mostly the same units. The effect is real but small in WER, because så/og
+deletions are about 5% of all errors (612 of about 11,200 on the tune half).
+
+This matches the blog's limit from the other side. A learned convention can be located and partly switched off by
+hand, but it is spread across many units, and no single readable edit removes it.
+`15_edit_loop.py`, `15b_reader_lens.py`, `15c_reader_branches.py`, `15d_suppression_units.py`, `15e_edit_effect.py`,
+`edits/`, `reader_lens.csv`, `reader_branches.csv`, `suppression_units_*.csv`, `edit_effect_*.csv`.

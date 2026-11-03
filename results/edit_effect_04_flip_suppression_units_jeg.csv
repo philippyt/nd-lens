@@ -1,0 +1,10 @@
+status,status_edit,tokens,edit,words
+delete,delete,135,04_flip_suppression_units,jeg
+delete,equal,2,04_flip_suppression_units,jeg
+delete,substitute,8,04_flip_suppression_units,jeg
+equal,delete,3,04_flip_suppression_units,jeg
+equal,equal,814,04_flip_suppression_units,jeg
+equal,substitute,22,04_flip_suppression_units,jeg
+substitute,delete,12,04_flip_suppression_units,jeg
+substitute,equal,4,04_flip_suppression_units,jeg
+substitute,substitute,220,04_flip_suppression_units,jeg

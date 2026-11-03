@@ -1,0 +1,36 @@
+{
+ "accepted": [
+  "edits/01_blank_bias.py"
+ ],
+ "passes": 9,
+ "tried": [
+  {
+   "edit": "01_blank_bias.py",
+   "gain": 0.016526785247709397,
+   "west": -0.011352374087755635,
+   "gap": 0.008063490499034931,
+   "accepted": true
+  },
+  {
+   "edit": "02_word_starts.py",
+   "gain": -0.0026306602100163445,
+   "west": 0.003694026488872848,
+   "gap": 0.0020345508831642323,
+   "accepted": false
+  },
+  {
+   "edit": "03_suppression_units.py",
+   "gain": 8.519267376599915e-05,
+   "west": -0.0008108838634111049,
+   "gap": -0.0004789887422693706,
+   "accepted": false
+  },
+  {
+   "edit": "04_flip_suppression_units.py",
+   "gain": 0.0009397704812978414,
+   "west": -0.0011712766915938366,
+   "gap": 0.0013179367169690592,
+   "accepted": false
+  }
+ ]
+}

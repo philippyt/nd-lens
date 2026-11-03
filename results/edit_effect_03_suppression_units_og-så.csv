@@ -1,0 +1,10 @@
+status,status_edit,tokens,edit,words
+delete,delete,578,03_suppression_units,"og,så"
+delete,equal,16,03_suppression_units,"og,så"
+delete,substitute,18,03_suppression_units,"og,så"
+equal,delete,5,03_suppression_units,"og,så"
+equal,equal,1760,03_suppression_units,"og,så"
+equal,substitute,13,03_suppression_units,"og,så"
+substitute,delete,6,03_suppression_units,"og,så"
+substitute,equal,18,03_suppression_units,"og,så"
+substitute,substitute,442,03_suppression_units,"og,så"

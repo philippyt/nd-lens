@@ -1,0 +1,10 @@
+status,status_edit,tokens,edit,words
+delete,delete,163,04_flip_suppression_units,"det,er"
+delete,equal,17,04_flip_suppression_units,"det,er"
+delete,substitute,9,04_flip_suppression_units,"det,er"
+equal,delete,4,04_flip_suppression_units,"det,er"
+equal,equal,1938,04_flip_suppression_units,"det,er"
+equal,substitute,14,04_flip_suppression_units,"det,er"
+substitute,delete,9,04_flip_suppression_units,"det,er"
+substitute,equal,20,04_flip_suppression_units,"det,er"
+substitute,substitute,211,04_flip_suppression_units,"det,er"

@@ -1,0 +1,10 @@
+status,status_edit,tokens,edit,words
+delete,delete,488,04_flip_suppression_units,"og,så"
+delete,equal,67,04_flip_suppression_units,"og,så"
+delete,substitute,57,04_flip_suppression_units,"og,så"
+equal,delete,11,04_flip_suppression_units,"og,så"
+equal,equal,1736,04_flip_suppression_units,"og,så"
+equal,substitute,31,04_flip_suppression_units,"og,så"
+substitute,delete,12,04_flip_suppression_units,"og,så"
+substitute,equal,46,04_flip_suppression_units,"og,så"
+substitute,substitute,408,04_flip_suppression_units,"og,så"

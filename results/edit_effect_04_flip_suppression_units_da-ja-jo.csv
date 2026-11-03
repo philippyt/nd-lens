@@ -1,0 +1,10 @@
+status,status_edit,tokens,edit,words
+delete,delete,223,04_flip_suppression_units,"da,ja,jo"
+delete,equal,9,04_flip_suppression_units,"da,ja,jo"
+delete,substitute,13,04_flip_suppression_units,"da,ja,jo"
+equal,delete,2,04_flip_suppression_units,"da,ja,jo"
+equal,equal,330,04_flip_suppression_units,"da,ja,jo"
+equal,substitute,6,04_flip_suppression_units,"da,ja,jo"
+substitute,delete,7,04_flip_suppression_units,"da,ja,jo"
+substitute,equal,8,04_flip_suppression_units,"da,ja,jo"
+substitute,substitute,211,04_flip_suppression_units,"da,ja,jo"
